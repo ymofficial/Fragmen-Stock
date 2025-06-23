@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Stock Portfolio Manager</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <script src="https://unpkg.com/xlsx/dist/xlsx.full.min.js"></script>
+    <style>
+        :root {
+            --dark-bg: #121212;
+            --card-bg: #1E1E1E;
+            --accent: #BB86FC;
+            --text: #E1E1E1;
+        }
+        body {
+            background-color: var(--dark-bg);
+            color: var(--text);
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        .card {
+            background-color: var(--card-bg);
+            border: 1px solid #333;
+            margin-bottom: 20px;
+        }
+        .btn-primary {
+            background-color: var(--accent);
+            border: none;
+        }
+        .btn-primary:hover {
+            background-color: #9965f4;
+        }
+        .table {
+            color: var(--text);
+        }
+        .table-dark th, .table-dark td {
+            color: var(--text) !important;
+        }
+        .form-control, .form-select {
+            background-color: var(--card-bg);
+            border: 1px solid #333;
+            color: var(--text) !important;
+        }
+        .form-control:focus, .form-select:focus {
+            background-color: var(--card-bg);
+            border-color: var(--accent);
+            color: var(--text);
+            box-shadow: 0 0 0 0.25rem rgba(187, 134, 252, 0.25);
+        }
+        .form-label {
+            color: var(--text) !important;
+        }
+        .btn, .btn-primary, .btn-danger {
+            color: #fff !important;
+        }
+        .card h3, .card h5, .card p, .card label {
+            color: var(--text) !important;
+        }
+    </style>
+</head>
+<body>
+    <div class="container py-4">
+        <h1 class="text-center mb-4">Stock Portfolio Manager</h1>
+        
+        <!-- Input Form -->
+        <div class="card p-4 mb-4">
+            <h3 class="mb-3">Add Transaction</h3>
+            <form id="transactionForm">
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label class="form-label">Item</label>
+                        <input type="text" class="form-control" id="itemName" required>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">Transaction Type</label>
+                        <select class="form-select" id="transactionType" required>
+                            <option value="buy">Buy</option>
+                            <option value="sell">Sell</option>
+                        </select>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Quantity</label>
+                        <input type="number" class="form-control" id="quantity" required>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Price per Unit</label>
+                        <input type="number" class="form-control" id="price" step="0.01" required>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Date</label>
+                        <input type="date" class="form-control" id="date" required>
+                    </div>
+                    <div class="col-12">
+                        <button type="submit" class="btn btn-primary">Add Transaction</button>
+                    </div>
+                </div>
+            </form>
+        </div>
+
+        <!-- Summary Cards -->
+        <div class="row mb-4">
+            <div class="col-md-3">
+                <div class="card p-3">
+                    <h5>Total Investment</h5>
+                    <h3 id="totalInvestment">$0.00</h3>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card p-3">
+                    <h5>Current Value</h5>
+                    <h3 id="currentValue">$0.00</h3>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card p-3">
+                    <h5>Total Profit/Loss</h5>
+                    <h3 id="totalProfitLoss">$0.00</h3>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card p-3">
+                    <h5>Return (%)</h5>
+                    <h3 id="returnPercentage">0.00%</h3>
+                </div>
+            </div>
+        </div>
+
+        <!-- Transactions Table -->
+        <div class="card p-4">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h3>Transaction History</h3>
+                <div>
+                    <button class="btn btn-primary me-2" onclick="exportToExcel()">Export to Excel</button>
+                    <button class="btn btn-primary" onclick="importFromExcel()">Import from Excel</button>
+                    <input type="file" id="fileInput" style="display: none;" accept=".xlsx,.xls">
+                </div>
+            </div>
+            <div class="table-responsive">
+                <table class="table table-dark table-hover">
+                    <thead>
+                        <tr>
+                            <th>Date</th>
+                            <th>Item</th>
+                            <th>Type</th>
+                            <th>Quantity</th>
+                            <th>Price per Unit</th>
+                            <th>Total</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="transactionTableBody"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let transactions = JSON.parse(localStorage.getItem('transactions')) || [];
+
+        document.getElementById('transactionForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            const transaction = {
+                id: Date.now(),
+                date: document.getElementById('date').value,
+                item: document.getElementById('itemName').value,
+                type: document.getElementById('transactionType').value,
+                quantity: parseFloat(document.getElementById('quantity').value),
+                price: parseFloat(document.getElementById('price').value),
+                total: parseFloat(document.getElementById('quantity').value) * parseFloat(document.getElementById('price').value)
+            };
+            
+            transactions.push(transaction);
+            saveTransactions();
+            updateUI();
+            this.reset();
+        });
+
+        function deleteTransaction(id) {
+            transactions = transactions.filter(t => t.id !== id);
+            saveTransactions();
+            updateUI();
+        }
+
+        function editTransaction(id) {
+            const transaction = transactions.find(t => t.id === id);
+            if (transaction) {
+                document.getElementById('date').value = transaction.date;
+                document.getElementById('itemName').value = transaction.item;
+                document.getElementById('transactionType').value = transaction.type;
+                document.getElementById('quantity').value = transaction.quantity;
+                document.getElementById('price').value = transaction.price;
+                deleteTransaction(id);
+            }
+        }
+
+        function saveTransactions() {
+            localStorage.setItem('transactions', JSON.stringify(transactions));
+        }
+
+        function updateUI() {
+            const tableBody = document.getElementById('transactionTableBody');
+            tableBody.innerHTML = '';
+            
+            let totalInvestment = 0;
+            let currentValue = 0;
+
+            transactions.forEach(t => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${t.date}</td>
+                    <td>${t.item}</td>
+                    <td>${t.type}</td>
+                    <td>${t.quantity}</td>
+                    <td>$${t.price.toFixed(2)}</td>
+                    <td>$${t.total.toFixed(2)}</td>
+                    <td>
+                        <button class="btn btn-sm btn-primary me-2" onclick="editTransaction(${t.id})">Edit</button>
+                        <button class="btn btn-sm btn-danger" onclick="deleteTransaction(${t.id})">Delete</button>
+                    </td>
+                `;
+                tableBody.appendChild(row);
+
+                if (t.type === 'buy') {
+                    totalInvestment += t.total;
+                } else {
+                    totalInvestment -= t.total;
+                }
+            });
+
+            document.getElementById('totalInvestment').textContent = `$${totalInvestment.toFixed(2)}`;
+            updateProfitLoss();
+        }
+
+        function updateProfitLoss() {
+            // In a real application, you would fetch current stock prices here
+            const profitLoss = 0; // Placeholder
+            const returnPercentage = 0; // Placeholder
+            
+            document.getElementById('currentValue').textContent = `$${(0).toFixed(2)}`;
+            document.getElementById('totalProfitLoss').textContent = `$${profitLoss.toFixed(2)}`;
+            document.getElementById('returnPercentage').textContent = `${returnPercentage.toFixed(2)}%`;
+        }
+
+        function exportToExcel() {
+            const ws = XLSX.utils.json_to_sheet(transactions);
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, "Transactions");
+            XLSX.writeFile(wb, "stock_transactions.xlsx");
+        }
+
+        function importFromExcel() {
+            document.getElementById('fileInput').click();
+        }
+
+        document.getElementById('fileInput').addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            const reader = new FileReader();
+            
+            reader.onload = function(e) {
+                const data = new Uint8Array(e.target.result);
+                const workbook = XLSX.read(data, {type: 'array'});
+                const sheetName = workbook.SheetNames[0];
+                const worksheet = workbook.Sheets[sheetName];
+                const importedTransactions = XLSX.utils.sheet_to_json(worksheet);
+                
+                transactions = importedTransactions.map(t => ({
+                    ...t,
+                    id: Date.now() + Math.random()
+                }));
+                
+                saveTransactions();
+                updateUI();
+            };
+            
+            reader.readAsArrayBuffer(file);
+        });
+
+        // Initial UI update
+        updateUI();
+    </script>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
