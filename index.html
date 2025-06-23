@@ -112,7 +112,8 @@
                     </div>
                     <div class="col-md-4">
                         <label class="form-label">Quantity</label>
-                        <input type="number" class="form-control" id="quantity" required>
+                        <input type="text" class="form-control" id="quantity" list="quantitySuggestions" autocomplete="off" required>
+                        <datalist id="quantitySuggestions"></datalist>
                     </div>
                     <div class="col-md-4">
                         <label class="form-label">Price per Unit</label>
@@ -636,12 +637,25 @@
         ];
         const itemTypeInput = document.getElementById('itemType');
         const itemNameSuggestions = document.getElementById('itemNameSuggestions');
+        const quantitySuggestions = document.getElementById('quantitySuggestions');
         itemTypeInput.addEventListener('change', function() {
             if (itemTypeInput.value === 'Oil') {
                 itemNameSuggestions.innerHTML = oilNames.map(name => `<option value="${name}"></option>`).join('');
+                quantitySuggestions.innerHTML = '';
+            } else if (itemTypeInput.value === 'Spray Bottle' || itemTypeInput.value === 'Roll-on Bottle') {
+                itemNameSuggestions.innerHTML = '';
+                const sizes = ['3ml', '6ml', '15ml', '30ml', '50ml'];
+                quantitySuggestions.innerHTML = sizes.map(size => `<option value="${size}"></option>`).join('');
             } else {
                 itemNameSuggestions.innerHTML = '';
+                quantitySuggestions.innerHTML = '';
             }
+        });
+
+        const quantityInput = document.getElementById('quantity');
+        quantityInput.addEventListener('input', function() {
+            // If the value matches a suggestion, keep it as is (for text input)
+            // Otherwise, allow normal typing
         });
     </script>
 
