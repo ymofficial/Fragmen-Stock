@@ -79,6 +79,11 @@
             ];
         }
 
+        // Save logged in admin name
+        function setLoggedInAdmin(username) {
+            localStorage.setItem('loggedInAdmin', username);
+        }
+
         document.getElementById('loginForm').addEventListener('submit', function(e) {
             e.preventDefault();
             const username = document.getElementById('username').value;
@@ -87,6 +92,7 @@
             const found = admins.some(a => a.username === username && a.password === password);
             if (found) {
                 localStorage.setItem('isAdminLoggedIn', 'true');
+                setLoggedInAdmin(username);
                 window.location.href = 'index.html';
             } else {
                 document.getElementById('errorMsg').textContent = 'Invalid username or password.';

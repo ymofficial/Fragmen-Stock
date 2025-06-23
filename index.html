@@ -69,7 +69,7 @@
     <div style="position: fixed; top: 24px; right: 32px; z-index: 1050;">
         <div class="dropdown">
             <button class="btn btn-secondary dropdown-toggle" type="button" id="userMenuButton" data-bs-toggle="dropdown" aria-expanded="false">
-                <span class="me-2">👤</span> User
+                <span class="me-2">👤</span> <span id="adminNameDisplay">User</span>
             </button>
             <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="userMenuButton">
                 <li><a class="dropdown-item" href="#" id="manageAdminsBtn">Manage Admins</a></li>
@@ -440,6 +440,11 @@
             localStorage.setItem('calcHistory', '[]');
             renderCalcHistory();
         };
+
+        // Show logged in admin name in dropdown
+        const adminName = localStorage.getItem('loggedInAdmin') || 'User';
+        const adminNameDisplay = document.getElementById('adminNameDisplay');
+        if (adminNameDisplay) adminNameDisplay.textContent = adminName;
 
         // Initial UI update
         updateUI();
