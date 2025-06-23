@@ -6,6 +6,7 @@
     <title>Fragmen Stock Dealings</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <script src="https://unpkg.com/xlsx/dist/xlsx.full.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         :root {
             --dark-bg: #121212;
@@ -88,11 +89,21 @@
             <h3 class="mb-3">Add Transaction</h3>
             <form id="transactionForm">
                 <div class="row g-3">
-                    <div class="col-md-6">
-                        <label class="form-label">Item</label>
-                        <input type="text" class="form-control" id="itemName" required>
+                    <div class="col-md-4">
+                        <label class="form-label">Item Name</label>
+                        <input type="text" class="form-control" id="itemName" list="itemNameSuggestions" autocomplete="off" required>
+                        <datalist id="itemNameSuggestions"></datalist>
                     </div>
-                    <div class="col-md-6">
+                    <div class="col-md-4">
+                        <label class="form-label">Item Type</label>
+                        <select class="form-select" id="itemType" required>
+                            <option value="">Select Type</option>
+                            <option value="Oil">Oil</option>
+                            <option value="Spray Bottle">Spray Bottle</option>
+                            <option value="Roll-on Bottle">Roll-on Bottle</option>
+                        </select>
+                    </div>
+                    <div class="col-md-4">
                         <label class="form-label">Transaction Type</label>
                         <select class="form-select" id="transactionType" required>
                             <option value="buy">Buy</option>
@@ -146,6 +157,28 @@
             </div>
         </div>
 
+        <!-- Investment Graph Card -->
+        <div class="row mb-4">
+            <div class="col-md-4">
+                <div class="card p-4 h-100">
+                    <h3 class="mb-3">Profit & Loss Overview</h3>
+                    <canvas id="profitLossChart" height="120"></canvas>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card p-4 h-100">
+                    <h3 class="mb-3">Total Stock Value</h3>
+                    <canvas id="stockValueChart" height="120"></canvas>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card p-4 h-100">
+                    <h3 class="mb-3">Investment</h3>
+                    <canvas id="investmentChart" height="120"></canvas>
+                </div>
+            </div>
+        </div>
+
         <!-- Transactions Table -->
         <div class="card p-4">
             <div class="d-flex justify-content-between align-items-center mb-3">
@@ -156,12 +189,18 @@
                     <input type="file" id="fileInput" style="display: none;" accept=".xlsx,.xls">
                 </div>
             </div>
+            <div class="d-flex justify-content-end mb-3">
+                <button class="btn btn-outline-primary me-2" id="backupBtn">Backup Transactions</button>
+                <button class="btn btn-outline-success" id="restoreBtn">Restore Transactions</button>
+                <input type="file" id="restoreFileInput" accept="application/json" style="display:none;">
+            </div>
             <div class="table-responsive">
                 <table class="table table-dark table-hover">
                     <thead>
                         <tr>
                             <th>Date</th>
-                            <th>Item</th>
+                            <th>Item Name</th>
+                            <th>Item Type</th>
                             <th>Type</th>
                             <th>Quantity</th>
                             <th>Price per Unit</th>
@@ -229,6 +268,7 @@
                 id: Date.now(),
                 date: document.getElementById('date').value,
                 item: document.getElementById('itemName').value,
+                itemType: document.getElementById('itemType').value,
                 type: document.getElementById('transactionType').value,
                 quantity: parseFloat(document.getElementById('quantity').value),
                 price: parseFloat(document.getElementById('price').value),
@@ -252,6 +292,7 @@
             if (transaction) {
                 document.getElementById('date').value = transaction.date;
                 document.getElementById('itemName').value = transaction.item;
+                document.getElementById('itemType').value = transaction.itemType || '';
                 document.getElementById('transactionType').value = transaction.type;
                 document.getElementById('quantity').value = transaction.quantity;
                 document.getElementById('price').value = transaction.price;
@@ -261,6 +302,97 @@
 
         function saveTransactions() {
             localStorage.setItem('transactions', JSON.stringify(transactions));
+        }
+
+        let investmentChartInstance = null;
+        let profitLossChartInstance = null;
+        let stockValueChartInstance = null;
+        function updateInvestmentChart(totalInvestment) {
+            const ctx = document.getElementById('investmentChart').getContext('2d');
+            const data = {
+                labels: ['Investment'],
+                datasets: [{
+                    label: 'Investment',
+                    data: [totalInvestment],
+                    backgroundColor: ['#BB86FC'],
+                    borderColor: ['#BB86FC'],
+                    borderWidth: 2
+                }]
+            };
+            if (investmentChartInstance) {
+                investmentChartInstance.data = data;
+                investmentChartInstance.options.indexAxis = 'x';
+                investmentChartInstance.update();
+            } else {
+                investmentChartInstance = new Chart(ctx, {
+                    type: 'bar',
+                    data: data,
+                    options: {
+                        indexAxis: 'x',
+                        responsive: true,
+                        plugins: { legend: { display: false } },
+                        scales: { y: { beginAtZero: true } }
+                    }
+                });
+            }
+        }
+        function updateProfitLossChart(profit, loss) {
+            const ctx = document.getElementById('profitLossChart').getContext('2d');
+            const data = {
+                labels: ['Profit', 'Loss'],
+                datasets: [{
+                    label: 'Amount',
+                    data: [profit, loss],
+                    backgroundColor: ['#4caf50', '#ff6b6b'],
+                    borderColor: ['#4caf50', '#ff6b6b'],
+                    borderWidth: 2
+                }]
+            };
+            if (profitLossChartInstance) {
+                profitLossChartInstance.data = data;
+                profitLossChartInstance.options.indexAxis = 'x';
+                profitLossChartInstance.update();
+            } else {
+                profitLossChartInstance = new Chart(ctx, {
+                    type: 'bar',
+                    data: data,
+                    options: {
+                        indexAxis: 'x',
+                        responsive: true,
+                        plugins: { legend: { display: false } },
+                        scales: { y: { beginAtZero: true } }
+                    }
+                });
+            }
+        }
+        function updateStockValueChart(totalStockValue) {
+            const ctx = document.getElementById('stockValueChart').getContext('2d');
+            const data = {
+                labels: ['Total Stock Value'],
+                datasets: [{
+                    label: 'Stock Value',
+                    data: [totalStockValue],
+                    backgroundColor: ['#2196f3'],
+                    borderColor: ['#2196f3'],
+                    borderWidth: 2
+                }]
+            };
+            if (stockValueChartInstance) {
+                stockValueChartInstance.data = data;
+                stockValueChartInstance.options.indexAxis = 'x';
+                stockValueChartInstance.update();
+            } else {
+                stockValueChartInstance = new Chart(ctx, {
+                    type: 'bar',
+                    data: data,
+                    options: {
+                        indexAxis: 'x',
+                        responsive: true,
+                        plugins: { legend: { display: false } },
+                        scales: { y: { beginAtZero: true } }
+                    }
+                });
+            }
         }
 
         function updateUI() {
@@ -278,6 +410,7 @@
                 row.innerHTML = `
                     <td>${t.date}</td>
                     <td>${t.item}</td>
+                    <td>${t.itemType || ''}</td>
                     <td>${t.type}</td>
                     <td>${t.quantity}</td>
                     <td>$${t.price.toFixed(2)}</td>
@@ -322,6 +455,12 @@
             document.getElementById('currentValue').textContent = `$${currentValue.toFixed(2)}`;
             document.getElementById('totalProfitLoss').textContent = `$${profitLoss.toFixed(2)}`;
             document.getElementById('returnPercentage').textContent = totalInvestment !== 0 ? `${((profitLoss / Math.abs(totalInvestment)) * 100).toFixed(2)}%` : '0.00%';
+
+            const profit = profitLoss > 0 ? profitLoss : 0;
+            const loss = profitLoss < 0 ? Math.abs(profitLoss) : 0;
+            updateInvestmentChart(totalInvestment);
+            updateProfitLossChart(profit, loss);
+            updateStockValueChart(currentValue);
         }
 
         function exportToExcel() {
@@ -356,6 +495,43 @@
             };
             
             reader.readAsArrayBuffer(file);
+        });
+
+        // Backup & Restore
+        document.getElementById('backupBtn').onclick = function() {
+            const transactions = localStorage.getItem('transactions') || '[]';
+            const blob = new Blob([transactions], {type: 'application/json'});
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'transactions-backup.json';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        };
+        document.getElementById('restoreBtn').onclick = function() {
+            document.getElementById('restoreFileInput').click();
+        };
+        document.getElementById('restoreFileInput').addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = function(evt) {
+                try {
+                    const data = JSON.parse(evt.target.result);
+                    if (Array.isArray(data)) {
+                        localStorage.setItem('transactions', JSON.stringify(data));
+                        alert('Transactions restored!');
+                        location.reload();
+                    } else {
+                        alert('Invalid backup file.');
+                    }
+                } catch {
+                    alert('Invalid backup file.');
+                }
+            };
+            reader.readAsText(file);
         });
 
         // Logout functionality
@@ -448,8 +624,33 @@
 
         // Initial UI update
         updateUI();
+
+        // Item Name suggestions for Oil
+        const oilNames = [
+            'Dior Sauvage',
+            'Bleu De Chanel',
+            'CK One',
+            'Ferarri Black',
+            'Creed Aventus',
+            'Lacoste'
+        ];
+        const itemTypeInput = document.getElementById('itemType');
+        const itemNameSuggestions = document.getElementById('itemNameSuggestions');
+        itemTypeInput.addEventListener('change', function() {
+            if (itemTypeInput.value === 'Oil') {
+                itemNameSuggestions.innerHTML = oilNames.map(name => `<option value="${name}"></option>`).join('');
+            } else {
+                itemNameSuggestions.innerHTML = '';
+            }
+        });
     </script>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <div style="position:fixed; bottom:0; left:0; width:100%; background:#181818; color:#BB86FC; text-align:center; padding:0.75rem 0; font-size:1rem; z-index:999; border-top:1px solid #333;">
+        <span><b>Backup Transactions</b> downloads your transactions as a JSON file. <b>Restore Transactions</b> lets you upload a backup JSON file to restore your data.</span>
+    </div>
+    <footer style="width:100%; background:#181818; color:#BB86FC; text-align:center; padding:0.75rem 0; font-size:1rem; border-top:1px solid #333; position:fixed; left:0; bottom:0; z-index:999;">
+        Fragmen Stock Dealings &copy; 2025 &mdash; All rights reserved by<span style="font-weight:bold; color:#fff; letter-spacing:1px;"> YM Design</span>
+    </footer>
 </body>
 </html>
