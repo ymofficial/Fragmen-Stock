@@ -155,6 +155,11 @@
     </div>
 
     <script>
+        // Redirect to login if not logged in as admin
+        if (localStorage.getItem('isAdminLoggedIn') !== 'true') {
+            window.location.href = 'login.html';
+        }
+
         let transactions = JSON.parse(localStorage.getItem('transactions')) || [];
 
         document.getElementById('transactionForm').addEventListener('submit', function(e) {
@@ -203,8 +208,11 @@
             
             let totalInvestment = 0;
             let currentValue = 0;
+            let profitLoss = 0;
+            let itemHoldings = {};
 
             transactions.forEach(t => {
+                // Render table row
                 const row = document.createElement('tr');
                 row.innerHTML = `
                     <td>${t.date}</td>
@@ -220,25 +228,39 @@
                 `;
                 tableBody.appendChild(row);
 
+                // Track holdings and investment per item
+                if (!itemHoldings[t.item]) {
+                    itemHoldings[t.item] = {
+                        quantity: 0,
+                        totalBuy: 0,
+                        totalSell: 0,
+                        buyQty: 0,
+                        avgBuyPrice: 0
+                    };
+                }
                 if (t.type === 'buy') {
-                    totalInvestment += t.total;
+                    itemHoldings[t.item].quantity += t.quantity;
+                    itemHoldings[t.item].totalBuy += t.total;
+                    itemHoldings[t.item].buyQty += t.quantity;
                 } else {
-                    totalInvestment -= t.total;
+                    itemHoldings[t.item].quantity -= t.quantity;
+                    itemHoldings[t.item].totalSell += t.total;
                 }
             });
 
-            document.getElementById('totalInvestment').textContent = `$${totalInvestment.toFixed(2)}`;
-            updateProfitLoss();
-        }
+            // Calculate average buy price and current value
+            Object.keys(itemHoldings).forEach(item => {
+                const h = itemHoldings[item];
+                h.avgBuyPrice = h.buyQty > 0 ? h.totalBuy / h.buyQty : 0;
+                currentValue += h.quantity * h.avgBuyPrice;
+                totalInvestment += h.totalBuy - h.totalSell;
+                profitLoss += (h.quantity * h.avgBuyPrice + h.totalSell) - h.totalBuy;
+            });
 
-        function updateProfitLoss() {
-            // In a real application, you would fetch current stock prices here
-            const profitLoss = 0; // Placeholder
-            const returnPercentage = 0; // Placeholder
-            
-            document.getElementById('currentValue').textContent = `$${(0).toFixed(2)}`;
+            document.getElementById('totalInvestment').textContent = `$${totalInvestment.toFixed(2)}`;
+            document.getElementById('currentValue').textContent = `$${currentValue.toFixed(2)}`;
             document.getElementById('totalProfitLoss').textContent = `$${profitLoss.toFixed(2)}`;
-            document.getElementById('returnPercentage').textContent = `${returnPercentage.toFixed(2)}%`;
+            document.getElementById('returnPercentage').textContent = totalInvestment !== 0 ? `${((profitLoss / Math.abs(totalInvestment)) * 100).toFixed(2)}%` : '0.00%';
         }
 
         function exportToExcel() {
