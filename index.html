@@ -56,6 +56,12 @@
         .card h3, .card h5, .card p, .card label {
             color: var(--text) !important;
         }
+        .calc-note-area {
+            background: #232323 !important;
+            color: #E1E1E1 !important;
+            border: 1px solid #444 !important;
+            font-size: 1rem;
+        }
     </style>
 </head>
 <body>
@@ -175,9 +181,9 @@
             <span style="font-size:1.2rem; color:#BB86FC; font-weight:bold;">Calculator</span>
             <button id="closeCalculatorBtn" class="btn btn-sm btn-outline-secondary" style="color:#fff; border-color:#444;">&times;</button>
         </div>
-        <div style="flex:1; padding:1.5rem; display:flex; flex-direction:column; justify-content:center;">
+        <div style="flex:1; padding:1.5rem; display:flex; flex-direction:column; justify-content:flex-start; overflow-y:auto;">
             <input type="text" id="calcDisplay" class="form-control mb-3" style="font-size:1.5rem; text-align:right; background:#1E1E1E; color:#fff; border:1px solid #444;" readonly>
-            <div class="row g-2">
+            <div class="row g-2 mb-3">
                 <div class="col-3"><button class="btn btn-secondary w-100 calc-btn">7</button></div>
                 <div class="col-3"><button class="btn btn-secondary w-100 calc-btn">8</button></div>
                 <div class="col-3"><button class="btn btn-secondary w-100 calc-btn">9</button></div>
@@ -196,6 +202,15 @@
                 <div class="col-3"><button class="btn btn-primary w-100 calc-btn">+</button></div>
                 <div class="col-6 mt-2"><button class="btn btn-danger w-100 calc-btn" id="calcClearBtn">C</button></div>
                 <div class="col-6 mt-2"><button class="btn btn-outline-light w-100 calc-btn" id="calcBackBtn">⌫</button></div>
+            </div>
+            <div class="mb-3 d-flex justify-content-between align-items-center">
+                <label style="color:#BB86FC; font-size:1rem;">History</label>
+                <button id="clearCalcHistoryBtn" class="btn btn-sm btn-outline-danger" type="button" style="font-size:0.95rem; padding:2px 10px;">Clear</button>
+            </div>
+            <div id="calcHistory" style="background:#181818; min-height:60px; max-height:100px; overflow-y:auto; border-radius:5px; padding:0.5rem; color:#fff; font-size:0.95rem; border:1px solid #333;"></div>
+            <div>
+                <label style="color:#BB86FC; font-size:1rem;">Short Note</label>
+                <textarea id="calcNote" class="form-control calc-note-area" style="min-height:60px;" placeholder="Write a note..."></textarea>
             </div>
         </div>
     </div>
@@ -362,11 +377,21 @@
         document.getElementById('closeCalculatorBtn').onclick = closeCalculator;
 
         // Calculator Sidebar logic
-        const calculatorSidebar = document.createElement('div');
-        // Already injected above, so just get reference
         const calcSidebar = document.getElementById('calculatorSidebar');
         const calcDisplay = document.getElementById('calcDisplay');
+        const calcHistoryDiv = document.getElementById('calcHistory');
+        const calcNote = document.getElementById('calcNote');
         let calcValue = '';
+        let calcHistory = JSON.parse(localStorage.getItem('calcHistory') || '[]');
+        let calcNoteVal = localStorage.getItem('calcNote') || '';
+        calcNote.value = calcNoteVal;
+        function renderCalcHistory() {
+            calcHistoryDiv.innerHTML = calcHistory.slice(-10).map(h => `<div>${h}</div>`).join('');
+        }
+        renderCalcHistory();
+        calcNote.addEventListener('input', function() {
+            localStorage.setItem('calcNote', calcNote.value);
+        });
         function openCalculator() {
             calcSidebar.style.right = '0';
         }
@@ -375,6 +400,11 @@
             calcValue = '';
             calcDisplay.value = '';
         }
+        document.getElementById('calculatorBtn').addEventListener('click', function(e) {
+            e.preventDefault();
+            openCalculator();
+        });
+        document.getElementById('closeCalculatorBtn').onclick = closeCalculator;
         // Calculator button logic
         calcSidebar.querySelectorAll('.calc-btn').forEach(btn => {
             btn.onclick = function() {
@@ -382,7 +412,12 @@
                 if (val === '=') {
                     try {
                         // eslint-disable-next-line no-eval
-                        calcValue = eval(calcValue).toString();
+                        const result = eval(calcValue).toString();
+                        calcHistory.push(`${calcValue} = ${result}`);
+                        if (calcHistory.length > 20) calcHistory = calcHistory.slice(-20);
+                        localStorage.setItem('calcHistory', JSON.stringify(calcHistory));
+                        renderCalcHistory();
+                        calcValue = result;
                         calcDisplay.value = calcValue;
                     } catch {
                         calcDisplay.value = 'Error';
@@ -400,6 +435,11 @@
                 }
             };
         });
+        document.getElementById('clearCalcHistoryBtn').onclick = function() {
+            calcHistory = [];
+            localStorage.setItem('calcHistory', '[]');
+            renderCalcHistory();
+        };
 
         // Initial UI update
         updateUI();
