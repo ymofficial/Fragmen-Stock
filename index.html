@@ -75,6 +75,7 @@
             <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="userMenuButton">
                 <li><a class="dropdown-item" href="#" id="manageAdminsBtn">Manage Admins</a></li>
                 <li><a class="dropdown-item" href="#" id="calculatorBtn">Calculator</a></li>
+                <li><a class="dropdown-item" href="#" id="settingsBtn">Settings</a></li>
                 <li><hr class="dropdown-divider"></li>
                 <li><a class="dropdown-item" href="#" id="logoutBtn">Logout</a></li>
             </ul>
@@ -83,6 +84,7 @@
 
     <div class="container py-4">
         <h1 class="text-center mb-4">Fragmen Stock Dealings</h1>
+        <div id="welcomeText" class="text-center mb-4" style="font-size:1.25rem; color:#BB86FC; font-weight:bold;"></div>
         
         <!-- Input Form -->
         <div class="card p-4 mb-4">
@@ -552,6 +554,10 @@
             openCalculator();
         });
         document.getElementById('closeCalculatorBtn').onclick = closeCalculator;
+        document.getElementById('settingsBtn').addEventListener('click', function(e) {
+            e.preventDefault();
+            alert('Settings page coming soon!');
+        });
 
         // Calculator Sidebar logic
         const calcSidebar = document.getElementById('calculatorSidebar');
@@ -622,6 +628,9 @@
         const adminName = localStorage.getItem('loggedInAdmin') || 'User';
         const adminNameDisplay = document.getElementById('adminNameDisplay');
         if (adminNameDisplay) adminNameDisplay.textContent = adminName;
+        // Show welcome text
+        const welcomeText = document.getElementById('welcomeText');
+        if (welcomeText) welcomeText.textContent = `Welcome, ${adminName}!`;
 
         // Initial UI update
         updateUI();
