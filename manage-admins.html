@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Manage Admins - Fragmen Stock Dealings</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        :root {
+            --dark-bg: #121212;
+            --card-bg: #1E1E1E;
+            --accent: #BB86FC;
+            --text: #E1E1E1;
+        }
+        body {
+            background-color: var(--dark-bg);
+            color: var(--text);
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        .card {
+            background-color: var(--card-bg);
+            border: 1px solid #333;
+            margin-bottom: 20px;
+        }
+        .btn-primary {
+            background-color: var(--accent);
+            border: none;
+        }
+        .btn-primary:hover {
+            background-color: #9965f4;
+        }
+        .form-control, .form-select {
+            background-color: var(--card-bg);
+            border: 1px solid #333;
+            color: var(--text) !important;
+        }
+        .form-control:focus, .form-select:focus {
+            background-color: var(--card-bg);
+            border-color: var(--accent);
+            color: var(--text);
+            box-shadow: 0 0 0 0.25rem rgba(187, 134, 252, 0.25);
+        }
+        .form-label {
+            color: var(--text) !important;
+        }
+        .btn, .btn-primary, .btn-danger {
+            color: #fff !important;
+        }
+        .table-dark th, .table-dark td {
+            color: var(--text) !important;
+        }
+        .card h3, .card h5, .card p, .card label {
+            color: var(--text) !important;
+        }
+        .mask {
+            letter-spacing: 0.2em;
+        }
+    </style>
+</head>
+<body>
+    <div class="container py-4">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h1>Manage Admins</h1>
+            <button class="btn btn-secondary" onclick="window.location.href='index.html'">⬅ Back</button>
+        </div>
+        <div class="card p-4 mb-4">
+            <h3 class="mb-3" id="adminFormTitle">Add New Admin</h3>
+            <form id="addAdminForm" class="row g-3">
+                <div class="col-md-5">
+                    <label class="form-label">Username</label>
+                    <input type="text" class="form-control" id="adminUsername" required>
+                </div>
+                <div class="col-md-5">
+                    <label class="form-label">Password</label>
+                    <div class="input-group">
+                        <input type="password" class="form-control" id="adminPassword" required>
+                        <button class="btn btn-outline-secondary" type="button" id="togglePasswordBtn" tabindex="-1" style="border: 1px solid #333; color: var(--text); background: var(--card-bg);">
+                            <span id="togglePasswordIcon" class="bi bi-eye"></span>
+                        </button>
+                    </div>
+                </div>
+                <div class="col-md-2 d-flex align-items-end">
+                    <button type="submit" class="btn btn-primary w-100" id="adminFormBtn">Add Admin</button>
+                </div>
+                <input type="hidden" id="editIndexInput">
+            </form>
+            <div id="editCancelRow" class="mt-2" style="display:none;">
+                <button class="btn btn-secondary btn-sm" id="cancelEditBtn">Cancel Edit</button>
+            </div>
+        </div>
+        <div class="card p-4">
+            <h3 class="mb-3">Admin List</h3>
+            <div class="table-responsive">
+                <table class="table table-dark table-hover">
+                    <thead>
+                        <tr>
+                            <th>Username</th>
+                            <th>Password</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="adminTableBody"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    <script>
+        // Redirect to login if not logged in as admin
+        if (localStorage.getItem('isAdminLoggedIn') !== 'true') {
+            window.location.href = 'login.html';
+        }
+
+        // Admins stored as array of {username, password}
+        let admins = JSON.parse(localStorage.getItem('admins')) || [
+            { username: 'admin', password: 'admin123' }
+        ];
+        let editIndex = null;
+
+        function maskPassword(pw) {
+            return '<span class="mask">' + '*'.repeat(pw.length) + '</span>';
+        }
+
+        function updateAdminTable() {
+            const tbody = document.getElementById('adminTableBody');
+            tbody.innerHTML = '';
+            admins.forEach((admin, idx) => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td>${admin.username}</td>
+                    <td>${maskPassword(admin.password)}</td>
+                    <td>
+                        <button class="btn btn-sm btn-primary me-2" onclick="editAdmin(${idx})">Edit</button>
+                        <button class="btn btn-sm btn-danger" onclick="deleteAdmin(${idx})">Delete</button>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        function resetFormToAddMode() {
+            document.getElementById('adminFormTitle').textContent = 'Add New Admin';
+            document.getElementById('adminFormBtn').textContent = 'Add Admin';
+            document.getElementById('editIndexInput').value = '';
+            editIndex = null;
+            document.getElementById('editCancelRow').style.display = 'none';
+            document.getElementById('addAdminForm').reset();
+        }
+
+        document.getElementById('addAdminForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            const username = document.getElementById('adminUsername').value.trim();
+            const password = document.getElementById('adminPassword').value;
+            if (!username || !password) return;
+            if (editIndex !== null) {
+                // Edit mode
+                // Prevent changing username to an existing one (except itself)
+                if (admins.some((a, i) => a.username === username && i !== editIndex)) {
+                    alert('Username already exists!');
+                    return;
+                }
+                admins[editIndex] = { username, password };
+                resetFormToAddMode();
+            } else {
+                // Add mode
+                if (admins.some(a => a.username === username)) {
+                    alert('Username already exists!');
+                    return;
+                }
+                admins.push({ username, password });
+            }
+            localStorage.setItem('admins', JSON.stringify(admins));
+            updateAdminTable();
+            this.reset();
+        });
+
+        window.editAdmin = function(idx) {
+            const admin = admins[idx];
+            document.getElementById('adminUsername').value = admin.username;
+            document.getElementById('adminPassword').value = admin.password;
+            editIndex = idx;
+            document.getElementById('adminFormTitle').textContent = 'Edit Admin';
+            document.getElementById('adminFormBtn').textContent = 'Save Changes';
+            document.getElementById('editIndexInput').value = idx;
+            document.getElementById('editCancelRow').style.display = '';
+        };
+
+        document.getElementById('cancelEditBtn').onclick = function() {
+            resetFormToAddMode();
+        };
+
+        window.deleteAdmin = function(idx) {
+            if (confirm('Are you sure you want to delete this admin?')) {
+                admins.splice(idx, 1);
+                localStorage.setItem('admins', JSON.stringify(admins));
+                updateAdminTable();
+                if (editIndex === idx) resetFormToAddMode();
+            }
+        };
+
+        // Password show/hide system (with Bootstrap Icons)
+        document.getElementById('togglePasswordBtn').addEventListener('click', function() {
+            const pwInput = document.getElementById('adminPassword');
+            const icon = document.getElementById('togglePasswordIcon');
+            if (pwInput.type === 'password') {
+                pwInput.type = 'text';
+                icon.classList.remove('bi-eye');
+                icon.classList.add('bi-eye-slash');
+            } else {
+                pwInput.type = 'password';
+                icon.classList.remove('bi-eye-slash');
+                icon.classList.add('bi-eye');
+            }
+        });
+
+        updateAdminTable();
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
+</body>
+</html>

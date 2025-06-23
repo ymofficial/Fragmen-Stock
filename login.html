@@ -72,16 +72,20 @@
         </div>
     </div>
     <script>
-        // Simple hardcoded admin credentials
-        const ADMIN_USER = 'admin';
-        const ADMIN_PASS = 'admin123';
+        // Login using any admin in localStorage admin list
+        function getAdmins() {
+            return JSON.parse(localStorage.getItem('admins')) || [
+                { username: 'admin', password: 'admin123' }
+            ];
+        }
 
         document.getElementById('loginForm').addEventListener('submit', function(e) {
             e.preventDefault();
             const username = document.getElementById('username').value;
             const password = document.getElementById('password').value;
-            if (username === ADMIN_USER && password === ADMIN_PASS) {
-                // Save login state
+            const admins = getAdmins();
+            const found = admins.some(a => a.username === username && a.password === password);
+            if (found) {
                 localStorage.setItem('isAdminLoggedIn', 'true');
                 window.location.href = 'index.html';
             } else {
