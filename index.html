@@ -169,6 +169,37 @@
         </div>
     </div>
 
+    <!-- Calculator Sidebar -->
+    <div id="calculatorSidebar" style="position:fixed; top:0; right:-350px; width:350px; height:100vh; background:#232323; box-shadow:-2px 0 16px #000a; z-index:2000; transition:right 0.3s cubic-bezier(.4,2,.6,1); display:flex; flex-direction:column;">
+        <div style="padding:1rem; border-bottom:1px solid #444; display:flex; justify-content:space-between; align-items:center;">
+            <span style="font-size:1.2rem; color:#BB86FC; font-weight:bold;">Calculator</span>
+            <button id="closeCalculatorBtn" class="btn btn-sm btn-outline-secondary" style="color:#fff; border-color:#444;">&times;</button>
+        </div>
+        <div style="flex:1; padding:1.5rem; display:flex; flex-direction:column; justify-content:center;">
+            <input type="text" id="calcDisplay" class="form-control mb-3" style="font-size:1.5rem; text-align:right; background:#1E1E1E; color:#fff; border:1px solid #444;" readonly>
+            <div class="row g-2">
+                <div class="col-3"><button class="btn btn-secondary w-100 calc-btn">7</button></div>
+                <div class="col-3"><button class="btn btn-secondary w-100 calc-btn">8</button></div>
+                <div class="col-3"><button class="btn btn-secondary w-100 calc-btn">9</button></div>
+                <div class="col-3"><button class="btn btn-primary w-100 calc-btn">/</button></div>
+                <div class="col-3"><button class="btn btn-secondary w-100 calc-btn">4</button></div>
+                <div class="col-3"><button class="btn btn-secondary w-100 calc-btn">5</button></div>
+                <div class="col-3"><button class="btn btn-secondary w-100 calc-btn">6</button></div>
+                <div class="col-3"><button class="btn btn-primary w-100 calc-btn">*</button></div>
+                <div class="col-3"><button class="btn btn-secondary w-100 calc-btn">1</button></div>
+                <div class="col-3"><button class="btn btn-secondary w-100 calc-btn">2</button></div>
+                <div class="col-3"><button class="btn btn-secondary w-100 calc-btn">3</button></div>
+                <div class="col-3"><button class="btn btn-primary w-100 calc-btn">-</button></div>
+                <div class="col-3"><button class="btn btn-secondary w-100 calc-btn">0</button></div>
+                <div class="col-3"><button class="btn btn-secondary w-100 calc-btn">.</button></div>
+                <div class="col-3"><button class="btn btn-success w-100 calc-btn">=</button></div>
+                <div class="col-3"><button class="btn btn-primary w-100 calc-btn">+</button></div>
+                <div class="col-6 mt-2"><button class="btn btn-danger w-100 calc-btn" id="calcClearBtn">C</button></div>
+                <div class="col-6 mt-2"><button class="btn btn-outline-light w-100 calc-btn" id="calcBackBtn">⌫</button></div>
+            </div>
+        </div>
+    </div>
+
     <script>
         // Redirect to login if not logged in as admin
         if (localStorage.getItem('isAdminLoggedIn') !== 'true') {
@@ -326,7 +357,48 @@
         });
         document.getElementById('calculatorBtn').addEventListener('click', function(e) {
             e.preventDefault();
-            alert('Calculator feature coming soon!');
+            openCalculator();
+        });
+        document.getElementById('closeCalculatorBtn').onclick = closeCalculator;
+
+        // Calculator Sidebar logic
+        const calculatorSidebar = document.createElement('div');
+        // Already injected above, so just get reference
+        const calcSidebar = document.getElementById('calculatorSidebar');
+        const calcDisplay = document.getElementById('calcDisplay');
+        let calcValue = '';
+        function openCalculator() {
+            calcSidebar.style.right = '0';
+        }
+        function closeCalculator() {
+            calcSidebar.style.right = '-350px';
+            calcValue = '';
+            calcDisplay.value = '';
+        }
+        // Calculator button logic
+        calcSidebar.querySelectorAll('.calc-btn').forEach(btn => {
+            btn.onclick = function() {
+                const val = btn.textContent;
+                if (val === '=') {
+                    try {
+                        // eslint-disable-next-line no-eval
+                        calcValue = eval(calcValue).toString();
+                        calcDisplay.value = calcValue;
+                    } catch {
+                        calcDisplay.value = 'Error';
+                        calcValue = '';
+                    }
+                } else if (val === 'C') {
+                    calcValue = '';
+                    calcDisplay.value = '';
+                } else if (val === '⌫') {
+                    calcValue = calcValue.slice(0, -1);
+                    calcDisplay.value = calcValue;
+                } else {
+                    calcValue += val;
+                    calcDisplay.value = calcValue;
+                }
+            };
         });
 
         // Initial UI update
